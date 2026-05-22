@@ -101,7 +101,13 @@ SQLite lives at `data/mux-practice.db` (gitignored).
 
 ## Deploy to production
 
-See **[DEPLOYMENT.md](./DEPLOYMENT.md)** for hosting options, env vars, webhooks, Docker, and the Vercel caveats.
+See **[DEPLOYMENT.md](./DEPLOYMENT.md)** for:
+
+- **Accounts & API keys** you need (Mux + host + optional auth)
+- **Fly.io / Docker** deploy steps (best fit for this app)
+- Webhooks, env vars, and security checklist
+
+CI runs on GitHub Actions for every push/PR to `main` (lint + build).
 
 Quick checks after deploy:
 

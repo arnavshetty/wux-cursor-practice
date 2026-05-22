@@ -1,0 +1,24 @@
+# Fly.io config — https://fly.io/docs/languages-and-frameworks/nextjs/
+# After: fly auth login && fly launch (pick app name + region)
+# Create volume: fly volumes create mux_data --size 1 --region <your-region>
+
+app = "mux-practice"
+primary_region = "sjc"
+
+[build]
+  dockerfile = "Dockerfile"
+
+[env]
+  NODE_ENV = "production"
+  DATABASE_PATH = "/data/mux-practice.db"
+
+[http_service]
+  internal_port = 3000
+  force_https = true
+  auto_stop_machines = "stop"
+  auto_start_machines = true
+  min_machines_running = 0
+
+[[mounts]]
+  source = "mux_data"
+  destination = "/data"

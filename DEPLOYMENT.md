@@ -2,6 +2,28 @@
 
 This app works great locally. To run it in production, address these areas in order.
 
+## What you need (accounts & secrets)
+
+Nothing below is committed to Git — you add these in the host’s env UI or `fly secrets` / Railway variables.
+
+| What | Required? | Where to get it |
+|------|-----------|-----------------|
+| **Mux account** | Yes | [dashboard.mux.com](https://dashboard.mux.com) (free tier is fine for practice) |
+| **MUX_TOKEN_ID** + **MUX_TOKEN_SECRET** | Yes | Mux → Settings → Access Tokens → **Mux Video Read + Write** |
+| **MUX_WEBHOOK_SIGNING_SECRET** | Yes in production | Mux → Settings → Webhooks → `https://YOUR_DOMAIN/api/webhooks/mux` → signing secret |
+| **NEXT_PUBLIC_APP_URL** | Yes in production | Public `https://` URL (no trailing slash) |
+| **Hosting account** | Yes | **Fly.io**, **Railway**, or Docker VPS (recommended). Vercel needs extra work. |
+| **Auth provider** | Before public launch | Clerk / NextAuth — app has **no login** today |
+| **Custom domain** | Optional | DNS at your host |
+
+You do **not** need Mux Data or System scopes unless you add signed/private playback.
+
+### Already in this repo
+
+- `GET /api/health` and `GET /api/config`
+- Webhook handler + webhook-first status sync
+- `Dockerfile`, `fly.toml`, GitHub Actions CI
+
 ## 1. Hosting choice (important)
 
 | Platform | SQLite catalog | Server upload route | Recommendation |
@@ -48,7 +70,31 @@ With webhooks configured:
 - Mux pushes `video.asset.ready` etc.
 - The app **stops** polling Mux on every `GET /api/videos` (fewer API calls, faster UI).
 
-## 4. Deploy with Docker (recommended)
+## 4. Deploy with Fly.io (recommended)
+
+```bash
+# One-time
+fly auth login
+fly launch                    # use existing fly.toml; don’t add Postgres
+fly volumes create mux_data --size 1 --region sjc
+
+# Secrets (paste real values when prompted)
+fly secrets set MUX_TOKEN_ID=... MUX_TOKEN_SECRET=... \
+  MUX_WEBHOOK_SIGNING_SECRET=... \
+  NEXT_PUBLIC_APP_URL=https://YOUR_APP.fly.dev
+
+fly deploy
+```
+
+Then in Mux Dashboard, set webhook URL to `https://YOUR_APP.fly.dev/api/webhooks/mux`.
+
+Verify:
+
+```bash
+curl https://YOUR_APP.fly.dev/api/health
+```
+
+## 5. Deploy with Docker (any VPS)
 
 ```bash
 docker build -t mux-practice .
@@ -62,9 +108,9 @@ docker run -p 3000:3000 \
   mux-practice
 ```
 
-Put a reverse proxy (Caddy, nginx, Fly, Railway) in front for HTTPS.
+Put a reverse proxy (Caddy, nginx) in front for HTTPS if not using Fly/Railway.
 
-## 5. Deploy to Vercel (extra work)
+## 6. Deploy to Vercel (extra work)
 
 If you use Vercel:
 
@@ -73,7 +119,7 @@ If you use Vercel:
 3. Set all env vars in the Vercel project settings.
 4. `vercel.json` in this repo increases upload body limits for the upload route, but very large videos may still hit platform caps.
 
-## 6. Security checklist
+## 7. Security checklist
 
 - [ ] Rotate any token that was pasted in chat or committed by mistake
 - [ ] Webhook signing secret set; `/api/webhooks/mux` rejects unsigned requests
@@ -81,13 +127,13 @@ If you use Vercel:
 - [ ] HTTPS everywhere
 - [ ] Add auth before public deploy (this app has **no login** — anyone with the URL can upload/delete)
 
-## 7. Observability
+## 8. Observability
 
 - **Health:** `GET /api/health` — config + deployment warnings
 - **Config:** `GET /api/config` — `webhook` vs `poll` sync mode
 - Logs: watch server logs for `Mux storage PUT failed` and webhook signature errors
 
-## 8. Next improvements (when you outgrow “practice”)
+## 9. Next improvements (when you outgrow “practice”)
 
 1. **Auth** (Clerk, NextAuth, etc.) — per-user video libraries
 2. **Postgres** instead of SQLite for multi-instance deploys
