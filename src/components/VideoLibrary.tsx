@@ -89,7 +89,13 @@ export function VideoLibrary({
   }, []);
 
   useEffect(() => {
-    void loadVideos();
+    let cancelled = false;
+    queueMicrotask(() => {
+      if (!cancelled) void loadVideos();
+    });
+    return () => {
+      cancelled = true;
+    };
   }, [loadVideos, refreshKey]);
 
   useEffect(() => {
